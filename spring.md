@@ -1,0 +1,38 @@
+
+Spring是作为容器的存在，在谈容器之前，先了解容器里面装着的组件。spring一开始就是作为管理组件间依赖关系管理的存在，核心就是实现依赖注入和控制反转。组件间的依赖关系，在spring里面抽象为BeanDefinition
+
+* BeanDefinition
+<pre>
+parentName
+beanClassName
+factoryBeanName
+factoryMethodName
+scope
+lazyInit
+dependsOn
+autowireCandidate
+primary
+constructorArgumentValues
+propertyValues
+singleton protype
+abstact
+</pre>
+
+BeanDefinition里面包含着描述组件本身和相互间依赖关系的属性，比如描述自身的beanClassName、constructorArgumentValues、propertyValues等，和描述依赖关系的dependsOn、autowireCandidate、scope、singleton protype等。这个接口描绘了Spring Bean的定义和依赖的全貌。
+
+管理BeanDefinition的组件是BeanDefinitionRegistry接口，这个接口的方法如下：
+
+* BeanDefinitionRegistry
+<pre>
+void registerBeanDefinition(String beanName, BeanDefinition beanDefinition)
+void removeBeanDefinition(String beanName)
+BeanDefinition getBeanDefinition(String beanName)
+boolean containsBeanDefinition
+String[] getBeanDefinitionNames()
+int getBeanDefinitionCount()
+boolean isBeanNameInUse(String beanName)
+</pre>
+
+从这些方法中看，BeanDefinitionRegistry被描绘成一个管理BeanDefinition的容器，在这个容器中可以注册、移除、获取BeanDefinition，最直观的实现方式就是用一个Map来存放BeanDefinition来实现上述接口。
+
+Spring提供了两种类型的接口来描述容器，实现基本功能的BeanFactory和实现高级功能的ApplicationContext，两种接口的继承关系如下图所展示：
