@@ -32,7 +32,7 @@
         * memory  内存管理相关(老的分代式GC框架也在这里)
         * oops  HotSpot VM的对象系统的实现  
         * opto  Server编译器
-        * precompiled  预编译的实现
+        * precompiled  
         * prims  HotSpot VM的对外接口，包括部分标准库native部分和 JVMTI实现
         * runtime  运行时支持库(包括线程管理、编译器调度、锁、反射等)
         * services  支持JMX之类管理功能接口
@@ -41,6 +41,9 @@
         * utilities  基本工具类
 
 
+## 虚拟机结构
+----
+> jvm运行时数据区占用内存 = 堆空间 + (虚拟机栈空间 + 本地方法栈) * 线程数量
 
 ## GC
 ----

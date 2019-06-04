@@ -13,8 +13,9 @@
 
 ### 值类型函数
 
-> java泛型不支持值类型，在大量使用函数的场景下，比如数据处理，值类型的装箱开箱开销不可忽略，所以引入了这种基本值类型的函数。
+> java泛型不支持值类型，在大量使用函数式编程的场景下，比如大批量数据处理，值类型的装箱开箱开销不可忽略，所以引入了这种基本值类型的函数。
 
+命名方式可以分按参数类型、按返回类型、参数和返回类型相结合。
 | Nomenclature | Example Interface | Function Signature|
 |----|----|----|
 |Parameter Type |IntFunction<R> |R apply(int value)|
@@ -27,6 +28,7 @@
 
 ## 方法引用
 ----
+在jdk8以前，如果方法参数需要某个接口类型而这个实现只会在这里使用，可以使用匿名内部内形式来实现该接口并创建一个这样的实例。
 
 * anonymous inner class
 ```
@@ -44,6 +46,7 @@
     }
 ```
 
+如果用lambda表达式，上面的匿名内部类可以写成这样。
 * lambda
 ```
     public void test(){
@@ -51,6 +54,7 @@
     }
 ```
 
+还可以更使用更简洁的方法引用
 * method reference
 ```
     public void test(){
