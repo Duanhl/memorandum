@@ -1,5 +1,7 @@
 
-Spring是作为容器的存在，在谈容器之前，先了解容器里面装着的组件。spring一开始就是作为管理组件间依赖关系管理的存在，核心就是实现依赖注入和控制反转。组件间的依赖关系，在spring里面抽象为BeanDefinition
+## Spring容器概览
+
+Spring是作为容器的存在，在谈容器之前，先了解容器里面装着的组件。spring一开始就是作为管理组件间依赖关系管理的存在，核心就是实现依赖注入和控制反转。组件间的依赖关系，在spring里面抽象为`BeanDefinition`
 
 * BeanDefinition
 <pre>
@@ -20,7 +22,7 @@ abstact
 
 BeanDefinition里面包含着描述组件本身和相互间依赖关系的属性，比如描述自身的beanClassName、constructorArgumentValues、propertyValues等，和描述依赖关系的dependsOn、autowireCandidate、scope、singleton protype等。这个接口描绘了Spring Bean的定义和依赖的全貌。
 
-管理BeanDefinition的组件是BeanDefinitionRegistry接口，这个接口的方法如下：
+管理BeanDefinition的组件是`BeanDefinitionRegistry`接口，这个接口的方法如下：
 
 * BeanDefinitionRegistry
 <pre>
@@ -35,7 +37,7 @@ boolean isBeanNameInUse(String beanName)
 
 从这些方法中看，BeanDefinitionRegistry被描绘成一个管理BeanDefinition的容器，在这个容器中可以注册、移除、获取BeanDefinition，最直观的实现方式就是用一个Map来存放BeanDefinition来实现上述接口。
 
-Spring提供了两种类型的接口来描述容器，实现基本功能的BeanFactory和实现高级功能的ApplicationContext，两种接口的继承关系如下图所展示：
+Spring提供了两种类型的接口来描述容器，实现基本功能的`BeanFactory`和实现高级功能的`ApplicationContext`，两种接口的继承关系如下图所展示：
 ![继承关系](spring-bean-factory-uml.jpg)
 
 BeanFactory作为最基本的容器，提供基本的按照beanName来获取Bean的功能。ListableBeanFactory提供了批量获取的功能，其中annotation作为Spring的一等公民，这个接口特意提供了getBeansForAnnotation的方法。AutowireCapableBeanFactory提供bean生命周期管理的功能，其中有createBean、configureBean、initializeBean、destroyBean等生命方法。HierarchicalBeanFactory提供了beanFactory相互继承的功能。DefaultListableBeanFactory提供了BeanFactory一系列接口一个完整的实现。
@@ -43,6 +45,8 @@ BeanFactory作为最基本的容器，提供基本的按照beanName来获取Bean
 ApplicationContext通过继承这三个接口获得了完善的容器功能，从getAutowireCapableBeanFactory这个方法可以看出，applicationContext更建议通过持有BeanFactory对象来实现功能。除了从BeanFactory继承过来的容器功能，通过继承MessageResource、ApplicationEventPublisher、ResourcePatternResolver这些接口，ApplicationContext得到了作为消息源、事件发布器、资源解析器等功能。
 
 我们常用到的WebApplicationContext，继承了ApplicationContext接口，增加了getServletContext方法，与servlet容器结合成为可能，ConfigurableApplicationContext又增加了配置容器的功能。
+
+## ApplicationContext的初始化
 
 Spring的官方文档提供了如下的示例来使用ApplicationContext:
 <pre>
@@ -66,7 +70,7 @@ context.refresh();
 2. 创建一个BeanDefinitionReader并从资源文件中读取beanDefinition结构定义和解析
 3. 刷新context
 
-核心过程在context的refresh方法，这个方法的实现在`AbstractApplicationContext.refresh()`方法里面，这个方法实现过程的如下：
+核心过程在context的refresh方法，这个方法的实现在`AbstractApplicationContext.refresh()`方法里面。我们将沿着context的初始化和bean的初始化两条路线来叙述，第一条路线是context的初始化，也就是`refresh()`方法，这个方法实现过程的如下：
 
 * AbstractApplicationContext.refresh()
 <pre>
@@ -225,5 +229,17 @@ void onApplicationEvent(E event);
 
 这里会执行一些特殊bean的构造和初始化，比如Springboot的ReactiveWebServerApplicationContext会在此时用netty创建一个http服务器，ServletWebServerApplicationContext会根据外挂的包来用tomcat或者jetty创建一个传统的servlet服务器。
 
+> 10.finishBeanFactoryInitialization(beanFactory);
 
+这个阶段会结束BeanFactory的初始化过程，首先冻结已有的BeanDefinition，使得这一部分的BeanDefinition不能被修改。在之前的过程中，其实已经初始化了BeanFactoryPostProcessor、BeanPostProcessor、ApplicationListener系列的Bean，剩下的单例bean的初始化在这个阶段全部被初始化。
 
+> 11.finishRefresh();
+
+这个阶段做收尾工作。清理资源缓存，比如在扫包过程中产生的ASM元数据，初始化LifecycleProcessor，并执行onRefresh方法，发布ContextRefreshedEvent，激活MBean管理服务等。
+
+## Spring Bean初始化过程
+
+Bean的创建和初始化过程是和Context Refresh过程交织在一起，它们之间的交织关系可以用下面的图来展示：
+![相对关系](context-refresh-bean-create.jpg)
+
+在上面展示的第五个阶段，BeanDefinitionRegistryPostProcessor这一类Bean首先被初始化并进行执行，扫描BeanDefinition注册到BeanFactory中，当新增加的BeanDefinition中又发现这一类Registry后，会继续初始化执行，最后会初始化其余普通的BeanFactoryPostProcessor来执行，这个阶段的Bean，除了ApplicationContextAwareProcessor（这个Processor是在第三阶段就注册好了），无法享受其它BeanPostProcessor的处理。在第六个阶段，会去注册BeanPostProcessor，此时BeanDefinition已经完全的确定下来了，context会根据BeanDefinition，从中获取元数据来进行排序，以保证BeanPostProcessorde的有序加载。主要是保证Bean生命周期Processor，比如InstantiationAwareBeanPostProcessor的预先加载，使得后续的BeanPostProcessor也能得到已经初始化的BeanPostProcessor的处理。
