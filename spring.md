@@ -241,6 +241,7 @@ void onApplicationEvent(E event);
 ## Spring Bean初始化过程
 
 Bean的创建和初始化过程是和Context Refresh过程交织在一起，它们之间的交织关系可以用下面的图来展示：
+
 ![相对关系](context-refresh-bean-create.jpg)
 
 在上面展示的第五个阶段，`BeanDefinitionRegistryPostProcessor`这一类Bean首先被初始化并进行执行，扫描BeanDefinition注册到BeanFactory中，当新增加的BeanDefinition中又发现这一类Registry后，会继续初始化执行，最后会初始化其余普通的BeanFactoryPostProcessor来执行，这个阶段的Bean，除了`ApplicationContextAwareProcessor`（这个Processor是在第三阶段就注册好了），无法享受其它BeanPostProcessor的处理。在第六个阶段，会去注册BeanPostProcessor，此时BeanDefinition已经完全的确定下来了，context会根据BeanDefinition，从中获取元数据来进行排序，以保证BeanPostProcessorde的有序加载。主要是保证Bean生命周期Processor，比如`InstantiationAwareBeanPostProcessor`的预先加载，使得后续的BeanPostProcessor也能得到已经初始化的BeanPostProcessor的处理。
@@ -280,12 +281,21 @@ ReferenceAnnotationBeanPostProcessor(dubbo)
 这个阶段是创建Bean并设置属性的阶段。首先是在调用Bean的构造器构造Bean之前，会对`SmartInstantiationAwareBeanPostProcessor`的`determineCandidateConstructors()`以便让BeanFactory选择采用何种构造器来进行构造。构造这一步完成后，就是初始化Bean的时期。
 
 
-Bean的属性初始化分成两部分，第一部分执行的populateBean方法，这个方法设置的属性是在BeanDefinition里面设置好的属性，从BeanDefinition中抽取属性时，会回调`InstantiationAwareBeanPostProcessor`的`postProcessProperties()`方法，dubbo的`ReferenceAnnotationBeanPostProcessor`选择在这个时候去把`Invoker`包装成`Reference`来注入属性，dubbo的这些ReferenceBean是在自己管理的容器里面，并没有注册到Spring容器中。
+Bean的属性初始化分成两部分，第一部分执行的`populateBean`方法，这个方法设置的属性是在BeanDefinition里面设置好的属性。首先执行`InstantiationAwareBeanPostProcessor.postProcessAfterInstantiation`，这时候Bean刚刚创建，出了构造器的属性值外，没有设置任何属性。然后从BeanDefinition中抽取属性，完成后会回调`InstantiationAwareBeanPostProcessor.postProcessProperties()`方法，以便用户可以去对要装配的属性进行修改。但实际上，这个方法更多的是用来用户直接注入自定义属性，比如dubbo的`ReferenceAnnotationBeanPostProcessor`选择在这个时候去把`Invoker`包装成`Reference`并直接注入，dubbo的这些ReferenceBean是在自己管理的容器里面，并没有注册到Spring容器中。Spring也选择在这个时候来进行`@Autowired`和`@Value`的自动装配。属性值处理完了，属性会进行深度拷贝后把副本注入到Bean中。
 
-第二部分执行的是`initializeBean`
+第二部分执行的是`initializeBean`，这个过程中，首先调用BeanNameAware、ClassLoaderAware、BeanFactoryAware的装配方法，使得bean能够感知到beanName、classLoader、beanFactory的存在。然后在BeanFactory里找到已经排好序的BeanPostProcessor，挨个调用其`postProcessBeforeInitialization`方法，比如ApplicationContextAwareProcessor，会在此时对实现`ApplicationContextAware`的bean注入ApplicationContext注入，使得容器能够持有此引用。接下来就是执行`initMethod`，所谓init-method，分为容器已经定义好了的`InitializingBean.afterPropertiesSet()`方法和用户之际指定的init-method方法，容器会依次执行。最后，会对Bean执行BeanPostProcessor的`postProcessAfterInitialization`方法。
+
+进行到这里时，对于正常的Bean来说，所有工作已经做完了。之前提到过解决依赖引用所用的`SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference`，这里获取到的所谓的早期的BeanReference，指向的是没有初始化的Bean，比如在解决循环依赖的过程中，容器必须选择循环中某个Bean，只进行构建，以便能够把引用暴露给依赖其的Bean，进行到此时，如果Bean有这类依赖需要引用，这里会注入这类earlyBeanRefrence。
+
+最后，会把DisposableBean注册到容器的disoableBeans中，以便容器销毁时，用户可以执行自定义的destroy方法以释放资源。
+
+整个Bean的初始化过程可以描绘成下面这张图：
+
+![创建并初始化Bean](bean-init.jpg)
 
 
+## 碎碎念
 
-
+要理解Spring，我们首先需要理解我们需要什么，就是被提了一百嘴的控制反转和依赖注入，也可以说是依赖倒置(Dependence Inversion Principle)。依赖倒置常常解释为`程序依赖于接口而非实现`，这样能使得我们能够更好的对模块进行解耦，这个解释太过于空洞。
 
 
