@@ -39,7 +39,7 @@ boolean isBeanNameInUse(String beanName)
 
 Spring提供了两种类型的接口来描述容器，实现基本功能的`BeanFactory`和实现高级功能的`ApplicationContext`，两种接口的继承关系如下图所展示：
 
-![继承关系](spring-bean-factory-uml.jpg)
+![继承关系](./img/spring-bean-factory-uml.jpg)
 
 `BeanFactory`作为最基本的容器，提供基本的按照beanName来获取Bean的功能。ListableBeanFactory提供了批量获取的功能，其中annotation作为Spring的一等公民，这个接口特意提供了getBeansForAnnotation的方法。`AutowireCapableBeanFactory`提供bean生命周期管理的功能，其中有createBean、configureBean、initializeBean、destroyBean等生命方法。`HierarchicalBeanFactory`提供了beanFactory相互继承的功能。`DefaultListableBeanFactory`提供了BeanFactory一系列接口一个完整的实现。
 
@@ -242,7 +242,7 @@ void onApplicationEvent(E event);
 
 Bean的创建和初始化过程是和Context Refresh过程交织在一起，它们之间的交织关系可以用下面的图来展示：
 
-![相对关系](context-refresh-bean-create.jpg)
+![相对关系](./img/context-refresh-bean-create.jpg)
 
 在上面展示的第五个阶段，`BeanDefinitionRegistryPostProcessor`这一类Bean首先被初始化并进行执行，扫描BeanDefinition注册到BeanFactory中，当新增加的BeanDefinition中又发现这一类Registry后，会继续初始化执行，最后会初始化其余普通的BeanFactoryPostProcessor来执行，这个阶段的Bean，除了`ApplicationContextAwareProcessor`（这个Processor是在第三阶段就注册好了），无法享受其它BeanPostProcessor的处理。在第六个阶段，会去注册BeanPostProcessor，此时BeanDefinition已经完全的确定下来了，context会根据BeanDefinition，从中获取元数据来进行排序，以保证BeanPostProcessorde的有序加载。主要是保证Bean生命周期Processor，比如`InstantiationAwareBeanPostProcessor`的预先加载，使得后续的BeanPostProcessor也能得到已经初始化的BeanPostProcessor的处理。
 
@@ -291,7 +291,7 @@ Bean的属性初始化分成两部分，第一部分执行的`populateBean`方�
 
 整个Bean的初始化过程可以描绘成下面这张图：
 
-![创建并初始化Bean](bean-init.jpg)
+![创建并初始化Bean](./img/bean-init.jpg)
 
 
 ## 碎碎念

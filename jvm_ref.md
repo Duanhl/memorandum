@@ -17,3 +17,5 @@
 ----
 
 - [translation of lambda expressions](http://cr.openjdk.java.net/~briangoetz/lambda/lambda-translation.html)
+
+- [jep160](http://openjdk.java.net/jeps/160)
