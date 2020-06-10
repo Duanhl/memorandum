@@ -173,9 +173,9 @@ public abstract SelectableChannel channel();
 public abstract int readyOps();
 </pre>
 
-SelectionKey包含四种事件，读写连接和接收连接，值都是2的幂此方，便于位运算。通过`readyOpts`获取就位的事件值，通过与预定义的事件值运算获取感兴趣的状态。通过`channel()`方法获取连接，转类型后进行操作。
+SelectionKey包含四种事件，读写连接和接收连接，值都是2的幂次方，便于位运算。通过`readyOpts`获取就位的事件值，通过与预定义的事件值运算获取感兴趣的状态。通过`channel()`方法获取连接，转类型后进行操作。
 
-### 一个简单的Nio服务器
+## 一个简单的Nio服务器
 
 <pre>
 import java.net.InetSocketAddress;
@@ -268,9 +268,7 @@ class Worker extends Thread {
 
 ----
 > 3055 epoll_create(256)                       = 9  
-
 > 3065 epoll_ctl(9, EPOLL_CTL_ADD, 7, {EPOLLIN, {u32=7, u64=12432636815209398279}}) = 0  
-
 > 3085 clone(child_stack=0x7fd5923bdff0, flags=CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND|CLONE_THREAD|CLONE_SYSVSEM|CLONE_SETTLS|CLONE_PARENT_SETTID|CLONE_CHILD_CLEARTID, parent_tidptr=0x7fd5923be9d0, tls=0x7fd5923be700, child_tidptr=0x7fd5923be9d0) = 23729
 ----
 
@@ -278,19 +276,32 @@ class Worker extends Thread {
 
 ----
 > 3105 accept(6, {sa_family=AF_INET6, sin6_port=htons(32882), inet_pton(AF_INET6, "::ffff:127.0.0.1", &sin6_addr), sin6 _flowinfo=0, sin6_scope_id=0}, [28]) = 10  
-
-> 3135 getsockname(10, {sa_family=AF_INET6, sin6_port=htons(6100), inet_pton(AF_INET6, "::ffff:127.0.0.1", &sin6_addr), sin6_flowinfo=0, sin6_scope_id=0}, [28]) = 0
-
-> 3136 getsockname(10, {sa_family=AF_INET6, sin6_port=htons(6100), inet_pton(AF_INET6, "::ffff:127.0.0.1", &sin6_addr), sin6_flowinfo=0, sin6_scope_id=0}, [28]) = 0
-
-> 3137 write(1, "received channel from:/127.0.0.1"..., 38) = 38
-
-> 3171 fcntl(11, F_GETFL)                      = 0x2 (flags O_RDWR)
-
+> 3135 getsockname(10, {sa_family=AF_INET6, sin6_port=htons(6100), inet_pton(AF_INET6, "::ffff:127.0.0.1", &sin6_addr), sin6_flowinfo=0, sin6_scope_id=0}, [28]) = 0  
+> 3136 getsockname(10, {sa_family=AF_INET6, sin6_port=htons(6100), inet_pton(AF_INET6, "::ffff:127.0.0.1", &sin6_addr), sin6_flowinfo=0, sin6_scope_id=0}, [28]) = 0  
+> 3137 write(1, "received channel from:/127.0.0.1"..., 38) = 38  
+> 3171 fcntl(11, F_GETFL)                      = 0x2 (flags O_RDWR)  
 > 3172 fcntl(11, F_SETFL, O_RDWR|O_NONBLOCK)   = 0
 
 ----
 
 用 `nc localhost 6100` 去连接服务器，可以在主线程的日志里面看到上述过程，首先是接收连接，获取远端地址，打印地址，设置channel为非阻塞。
 
+连接上服务器后，在`nc`客户端发送一条信息：  
+`dhsdhsjdhsdhsjfgdsjgjgfaglkfhakjhsdkjahsdksajhdlksahdlkahdkjahdlsahdlskajhdslakjhdlkashdslkajdhjaskhd`
+
+找到工作线程的日志，我们可以看到：
+
+----
+> 72 epoll_wait(9, [{EPOLLIN, {u32=10, u64=12512190127906226186}}], 8192, 500) = 1  
+> 107 read(10, "dhsdhsjdhsdhsjfgdsjgjgfaglkfhakj"..., 48) = 48  
+> 112 write(10, "dhsdhsjdhsdhsjfgdsjgjgfaglkfhakj"..., 48) = 48  
+> 113 epoll_wait(9, [{EPOLLIN, {u32=10, u64=12512190127906226186}}], 8192, 500) = 1  
+114 read(10, "ksahdlkahdkjahdlsahdlskajhdslakj"..., 48) = 48  
+    115 write(10, "ksahdlkahdkjahdlsahdlskajhdslakj"..., 48) = 48  
+    116 epoll_wait(9, [{EPOLLIN, {u32=10, u64=12512190127906226186}}], 8192, 500) = 1  
+    117 read(10, "askhd\n", 48)                 = 6  
+    118 write(10, "askhd\n", 6)  
+----
+
+由于`Buffer`容量有限(48)，不足以读取整段数据，填充满`buffer`，移除事件，`channel`实际上依然有可读数据。下一次调用`select()`方法时，依然会返回这个`channel`的读取事件，供我们继续读取。这个是因为java默认实现使用的是`epoll`的水平触发模式。
 
