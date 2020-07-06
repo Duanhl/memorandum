@@ -2,6 +2,8 @@
 
 ## Resources
 
+[raft home](https://raft.github.io)
+
 [raft paper](https://pdos.csail.mit.edu/6.824/papers/raft-extended.pdf)
 
 [raft visualization](http://thesecretlivesofdata.com/raft)
