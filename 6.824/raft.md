@@ -21,13 +21,13 @@
 
 ## Summary
 
- ![State](./img/raft-summary-state.png)
+ ![State](../img/raft-summary-state.png)
 
- ![RequestVoteRPC](./img/raft-summary-vote.png)
+ ![RequestVoteRPC](../img/raft-summary-vote.png)
 
- ![AppendEntriesRPC](./img/raft-summary-append.png)
+ ![AppendEntriesRPC](../img/raft-summary-append.png)
 
- ![Server](./img/raft-summary-server.png)
+ ![Server](../img/raft-summary-server.png)
 
 
 
@@ -65,7 +65,7 @@ Leader节点发送RPC请求来阻止Follower节点转变成Candidate，这个请
 
 为了避免出现多轮空选的情况，每个节点选择一个随机的ElectionTimeout，来错开转换成Candidate的时机，使得有一些节点能够更早的转换成Candidate拿到选票。Leader节点发送心跳的频率一般选择在一个ElectionTimeout内能够发送10个心跳，即使在网络抖动下，也能避免过于频繁的选举。
 
-![state transfer](./img/raft-state-transfer.png)
+![state transfer](../img/raft-state-transfer.png)
 
 ### Log Republication
 

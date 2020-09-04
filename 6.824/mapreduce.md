@@ -15,7 +15,7 @@ reduce (k2,list(v2)) → list(v2)
 
 ## 实现
 
-![overview](./img/mapreduce-impl.png)
+![overview](../img/mapreduce-impl.png)
 
 一个典型的分布式实现如上图，可分为下列步骤：
 
